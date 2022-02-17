@@ -28,6 +28,10 @@ public class Httpc {
     /**
      * @param args the command line arguments
      */
+    public static String url_ = "";
+    public static String domain_ = "";
+    public static String param_ = "";
+    
     public static void main(String[] args) throws URISyntaxException {
 
         // TODO code application logic here
@@ -54,11 +58,7 @@ public class Httpc {
             if (args[0].equals("help")) {
                 handleHelpCall(args);
             } else if (args[0].equalsIgnoreCase("get")) {
-
-                //Setup params
-                //Apply param
-                //Make Socket call
-                //Output the stream
+                handleGetCall(args);
             } else if (args[0].equalsIgnoreCase("post")) {
                 handlePostCall(args);
             }
@@ -95,6 +95,165 @@ public class Httpc {
 
     }
 
+    public static void processUrl(String url) {
+
+        if (url.contains("//")) {
+
+            String[] urlArr = url.split("//", 2);
+
+            if (urlArr[1].contains("/")) {
+
+                String[] urlArr2 = urlArr[1].split("/", 2);
+
+                domain_ = urlArr2[0];
+                param_ = urlArr2[1];
+
+            } else {
+
+                domain_ = urlArr[1];
+                param_ = "";
+
+            }
+
+        } else if (url.contains("/")) {
+
+            String[] urlArr = url.split("/", 2);
+
+            System.out.println("urlArr size: " + urlArr.length);
+            System.out.println("domain: " + urlArr[0]);
+            System.out.println("param" + urlArr[1]);
+            domain_ = urlArr[0];
+            param_ = urlArr[1];
+
+        } else {
+
+            domain_ = url;
+
+        }
+
+        //domain = "httpbin.org";
+        // param = "get?course=networking&assignment=1%27";
+        // http://httpbin.org/get?course=networking&assignment=1%27
+    }
+
+    public static void handleGetCall(String commands[]) {
+        
+        
+             boolean verboseTrue = false;
+             boolean oFileTrue = false;
+             String headerLine = "";
+             String outputFileName = "";
+
+        StringBuilder sb = new StringBuilder();
+
+        if (commands.length == 1) {
+
+            System.out.println("");
+            //Add help get format 
+            // exit
+
+        } else {
+
+            for (int index = 1; index < commands.length; index++) {
+
+                if (commands[index].compareToIgnoreCase("-v") == 0) {
+                    verboseTrue = true;
+
+                } else if (commands[index].compareToIgnoreCase("-o") == 0) {
+                    oFileTrue = true;
+                    outputFileName = commands[index + 1];
+
+                } else if (commands[index].compareToIgnoreCase("-h") == 0) {
+
+                    sb.append(commands[index + 1] + "\r\n");
+
+                } else if (commands[index].contains("http") || commands[index].contains("www") || commands[index].contains("http:") || commands[index].contains("//")) {
+
+                    processUrl(commands[index]);
+
+                } else if (commands[index].compareToIgnoreCase("-d") == 0 || commands[index].compareToIgnoreCase("-f") == 0) {
+
+                    System.out.println("GET method cannot contain a -d or -f");
+                    System.exit(1);
+
+                }
+
+            }
+
+            headerLine = (sb.toString());
+            System.out.print("header content: " + headerLine);
+
+        }
+
+        try {
+
+            String result = "";
+            StringBuilder outputSB = new StringBuilder();
+            boolean weAreInBody = false;
+            Socket s = new Socket(domain_, 80);
+            PrintWriter pWriter = new PrintWriter(s.getOutputStream());
+            String requestString = "GET /" + param_ + " HTTP/1.0\r\n" + headerLine + "\r\n";
+            System.out.println("request string: " + requestString);
+            Scanner in = new Scanner(s.getInputStream());
+            pWriter.write("GET /" + param_ + " HTTP/1.0\r\n" + headerLine + "\r\n");
+            //pWriter.write("GET / HTTP/1.0\r\n\r\n");
+            pWriter.flush();
+
+            while (in.hasNextLine()) {
+                result = in.nextLine();
+
+                if (verboseTrue && !weAreInBody) {
+                    System.out.println(result);
+
+                }if (result.isBlank() && !weAreInBody) {
+
+                    weAreInBody = true;
+                    continue;
+
+                } else if (weAreInBody && (result != null)) {
+
+                    if (oFileTrue) {
+
+                        outputSB.append(result);
+                        outputSB.append(System.lineSeparator());
+
+                    } else {
+
+                        System.out.println(result);
+                    }
+
+                }
+
+            }
+            
+
+            pWriter.close();
+            in.close();
+            s.close();
+            
+            
+            if (oFileTrue) {
+
+            File file = new File(outputFileName.concat(".txt"));
+            if (file.exists()) {
+                file.delete();
+            }
+
+            file.createNewFile();
+            FileOutputStream fOS = new FileOutputStream(file);
+
+            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fOS));
+            bw.write(outputSB.toString());
+            bw.close();
+        }
+
+        } catch (Exception ex) {
+            System.err.println(ex);
+
+        }
+
+    }
+    
     /**
      *
      *
