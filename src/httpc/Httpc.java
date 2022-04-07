@@ -205,7 +205,7 @@ public class Httpc {
                 if (verboseTrue && !weAreInBody) {
                     System.out.println(result);
 
-                }if (result.isBlank() && !weAreInBody) {
+                }if (result.  && !weAreInBody) {
 
                     weAreInBody = true;
                     continue;
